@@ -723,13 +723,18 @@ function startDeckDrag(startEvt, btn, actionData) {
 
   let scrollTimer = null;
   const shortcutsWidget = document.querySelector('.shortcuts');
+  // CSS scroll-snap-type fights JS-driven scrollLeft nudges (the browser keeps
+  // correcting back toward the current page), which silently cancels the
+  // auto-scroll. Suspend it for the drag, restore (and let it settle) on drop.
+  const originalSnapType = pager.style.scrollSnapType;
+  pager.style.scrollSnapType = 'none';
 
   function onMove(ev) {
     ghost.style.left = (ev.clientX - rect.width / 2) + 'px';
     ghost.style.top = (ev.clientY - rect.height / 2) + 'px';
 
-    if (ev.clientX < 60 && pager.scrollLeft > 0) {
-      if (!scrollTimer) scrollTimer = setInterval(() => { pager.scrollLeft -= 24; }, 16);
+    if (ev.clientX < 70 && pager.scrollLeft > 0) {
+      if (!scrollTimer) scrollTimer = setInterval(() => { pager.scrollLeft = Math.max(0, pager.scrollLeft - 32); }, 16);
     } else if (scrollTimer) {
       clearInterval(scrollTimer);
       scrollTimer = null;
@@ -746,6 +751,11 @@ function startDeckDrag(startEvt, btn, actionData) {
     if (elementIsOver(shortcutsWidget, ev.clientX, ev.clientY)) {
       addShortcut(actionData);
     }
+    pager.style.scrollSnapType = originalSnapType;
+    // Snap to the nearest page now that snapping is back on, since scrollLeft
+    // may currently sit mid-way between pages from the auto-scroll.
+    const nearest = Math.round(pager.scrollLeft / pager.clientWidth) * pager.clientWidth;
+    pager.scrollTo({ left: nearest, behavior: 'smooth' });
     document.removeEventListener('pointermove', onMove);
     document.removeEventListener('pointerup', onUp);
   }
