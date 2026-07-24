@@ -46,21 +46,18 @@
   }
   .num { font-variant-numeric: tabular-nums; }
 
+  /* Static ambient depth — no motion. Research: infinite decorative animation reads as
+     distracting rather than premium; motion here should come from real data changes only. */
   #glow {
-    position: fixed; inset: -10% -10%; z-index: 0; pointer-events: none;
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
     background:
       radial-gradient(circle at 50% 0%, rgba(69, 224, 196, 0.12), transparent 45%),
       radial-gradient(circle at 85% 100%, rgba(69, 224, 196, 0.06), transparent 40%);
-    animation: drift 22s ease-in-out infinite alternate;
   }
   #grain {
     position: fixed; inset: 0; z-index: 2; pointer-events: none;
     opacity: 0.025; mix-blend-mode: overlay;
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  }
-  @keyframes drift {
-    0% { transform: translate(0, 0) scale(1); }
-    100% { transform: translate(-2%, 2%) scale(1.05); }
   }
   @media (prefers-reduced-motion: reduce) {
     #glow { animation: none; }
@@ -239,22 +236,21 @@
     border-radius: 15px;
     transition: background .4s var(--ease);
   }
-  /* Live shimmer — a soft highlight sweeps up the active fill, signalling live data */
-  .meter-fill::before {
+  /* Skeleton shimmer — loading-only, per UX guidance (infinite animation should signal
+     "loading", not run decoratively forever). Removed automatically once real data arrives. */
+  .meter-track.skeleton::before {
     content: '';
-    position: absolute; left: 0; right: 0; z-index: 3; pointer-events: none;
-    height: 40%; top: -40%;
-    background: linear-gradient(180deg, transparent, rgba(255,255,255,0.28), transparent);
-    animation: sweep 2.6s var(--ease) infinite;
+    position: absolute; inset: 0; z-index: 4; pointer-events: none;
+    background: linear-gradient(180deg, transparent, rgba(255,255,255,0.14), transparent);
+    background-size: 100% 200%;
+    animation: skeleton-sweep 1.4s ease-in-out infinite;
   }
-  @keyframes sweep {
-    0% { top: 100%; opacity: 0; }
-    15% { opacity: 1; }
-    85% { opacity: 1; }
-    100% { top: -40%; opacity: 0; }
+  @keyframes skeleton-sweep {
+    0% { background-position: 0 150%; }
+    100% { background-position: 0 -50%; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .meter-fill::before { animation: none; display: none; }
+    .meter-track.skeleton::before { animation: none; }
   }
   .meter-value { font-size: 24px; font-weight: 700; margin-top: 14px; letter-spacing: -0.02em; line-height: 1; }
   .meter-sub { font-size: 11px; color: var(--muted); margin-top: 6px; text-align: center; }
@@ -315,14 +311,7 @@
   button.ctl svg { width: 21px; height: 21px; fill: var(--text); }
   button.ctl.play {
     width: 70px; height: 70px; background: var(--accent); border-color: var(--accent);
-    animation: breathe 3.4s ease-in-out infinite;
-  }
-  @keyframes breathe {
-    0%, 100% { box-shadow: 0 0 20px -6px rgba(69, 224, 196, 0.45); }
-    50% { box-shadow: 0 0 32px 0px rgba(69, 224, 196, 0.65); }
-  }
-  @media (prefers-reduced-motion: reduce) {
-    button.ctl.play { animation: none; box-shadow: 0 0 24px -4px rgba(69, 224, 196, 0.5); }
+    box-shadow: 0 0 24px -4px rgba(69, 224, 196, 0.5);
   }
   button.ctl.play svg { fill: #04241d; width: 28px; height: 28px; }
   button.ctl.small { width: 44px; height: 44px; }
@@ -434,21 +423,21 @@
         </div>
         <div class="meter-col">
           <div class="tag">CPU</div>
-          <div class="meter-track"><div class="meter-fill" id="meterCpu"></div></div>
+          <div class="meter-track skeleton" id="trackCpu"><div class="meter-fill" id="meterCpu"></div></div>
           <div class="meter-value num" id="cpuTemp">--</div>
           <div class="meter-sub num" id="cpuLoad">-- % load</div>
         </div>
 
         <div class="meter-col">
           <div class="tag">GPU</div>
-          <div class="meter-track"><div class="meter-fill" id="meterGpu"></div></div>
+          <div class="meter-track skeleton" id="trackGpu"><div class="meter-fill" id="meterGpu"></div></div>
           <div class="meter-value num" id="gpuMain">--</div>
           <div class="meter-sub num" id="gpuSub">-- % load</div>
         </div>
 
         <div class="meter-col">
           <div class="tag">RAM</div>
-          <div class="meter-track"><div class="meter-fill" id="meterRam"></div></div>
+          <div class="meter-track skeleton" id="trackRam"><div class="meter-fill" id="meterRam"></div></div>
           <div class="meter-value num" id="ramPct">--</div>
           <div class="meter-sub num" id="ramGb">-- GB</div>
         </div>
@@ -628,6 +617,11 @@ async function refresh() {
     targets.ramPct = smooth('ramPct', num(data.ramUsed));
     gpuHasTemp = targets.gpuTemp !== null;
     ramGbText = data.ramUsedGb ? data.ramUsedGb + ' used' : '--';
+
+    // First real reading in — drop the loading skeleton (animation is for loading only, per UX guidance)
+    document.getElementById('trackCpu').classList.remove('skeleton');
+    document.getElementById('trackGpu').classList.remove('skeleton');
+    document.getElementById('trackRam').classList.remove('skeleton');
 
     document.getElementById('liveDot').className = 'dot live';
     document.getElementById('err').textContent = '';
@@ -816,11 +810,16 @@ function startDrag(startEvt, widget) {
   document.addEventListener('pointerup', onUp);
 }
 
+// 24px grid step — resize snaps like Datadog/home-screen widget grids instead of
+// landing on arbitrary pixel heights. A quick scale-tick fires only when the
+// snapped value actually changes (a one-shot reaction to a real change, not a loop).
+const RESIZE_GRID = 24;
 function startResize(startEvt, widget) {
   startEvt.preventDefault();
   startEvt.stopPropagation();
   const startY = startEvt.clientY;
   const startHeight = widget.getBoundingClientRect().height;
+  let lastSnapped = Math.round(startHeight / RESIZE_GRID) * RESIZE_GRID;
 
   let pending = null;
   function onMove(ev) {
@@ -830,12 +829,20 @@ function startResize(startEvt, widget) {
       const evt = pending;
       pending = null;
       const dy = evt.clientY - startY;
-      const newHeight = Math.max(140, Math.min(window.innerHeight * 0.7, startHeight + dy));
-      widget.style.height = newHeight + 'px';
-      widget.style.minHeight = newHeight + 'px';
+      const raw = Math.max(140, Math.min(window.innerHeight * 0.7, startHeight + dy));
+      const snapped = Math.round(raw / RESIZE_GRID) * RESIZE_GRID;
+      widget.style.height = snapped + 'px';
+      widget.style.minHeight = snapped + 'px';
+      if (snapped !== lastSnapped) {
+        lastSnapped = snapped;
+        widget.style.transition = 'scale .1s var(--ease)';
+        widget.style.scale = '1.008';
+        requestAnimationFrame(() => { widget.style.scale = '1'; });
+      }
     });
   }
   function onUp() {
+    widget.style.transition = '';
     document.removeEventListener('pointermove', onMove);
     document.removeEventListener('pointerup', onUp);
     saveWidgetSizes();
