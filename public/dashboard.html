@@ -126,14 +126,14 @@
     align-items: center; justify-content: center;
     color: var(--muted); background: none; border: none;
   }
-  #castBtn svg { width: 20px; height: 20px; fill: currentColor; }
+  #castBtn svg { width: 20px; height: 20px; }
   #castBtn:active { color: var(--accent); }
   #editBtn {
     width: 28px; height: 28px; display: flex;
     align-items: center; justify-content: center;
     color: var(--muted); background: none; border: none;
   }
-  #editBtn svg { width: 18px; height: 18px; fill: currentColor; }
+  #editBtn svg { width: 18px; height: 18px; }
   #editBtn.active { color: var(--accent); }
 
   @keyframes rise { to { opacity: 1; transform: translateY(0); } }
@@ -168,7 +168,7 @@
     color: var(--muted);
     touch-action: none;
   }
-  body.edit-mode .widget-handle svg { width: 16px; height: 16px; fill: currentColor; }
+  body.edit-mode .widget-handle svg { width: 16px; height: 16px; }
   body.edit-mode .widget-resize {
     display: block;
     position: absolute; bottom: 6px; right: 6px; z-index: 3;
@@ -276,7 +276,7 @@
     display: flex; align-items: center; justify-content: center;
     flex: 0 0 auto;
   }
-  .np-art svg { width: 24px; height: 24px; fill: var(--muted); }
+  .np-art svg { width: 22px; height: 22px; color: var(--muted); }
   .np-text { min-width: 0; flex: 1; }
   .np-title { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .np-artist { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
@@ -308,12 +308,12 @@
     display: flex; align-items: center; justify-content: center;
     transition: transform .2s var(--ease), background .2s var(--ease);
   }
-  button.ctl svg { width: 21px; height: 21px; fill: var(--text); }
+  button.ctl svg { width: 21px; height: 21px; color: var(--text); }
   button.ctl.play {
     width: 70px; height: 70px; background: var(--accent); border-color: var(--accent);
     box-shadow: 0 0 24px -4px rgba(69, 224, 196, 0.5);
   }
-  button.ctl.play svg { fill: #04241d; width: 28px; height: 28px; }
+  button.ctl.play svg { fill: #04241d; stroke: none; width: 26px; height: 26px; }
   button.ctl.small { width: 44px; height: 44px; }
   button.ctl.small svg { width: 17px; height: 17px; }
   button.ctl:active { transform: scale(0.94); background: var(--accent-dim); }
@@ -344,6 +344,7 @@
     align-content: start;
   }
   .deck-btn {
+    position: relative;
     background: linear-gradient(165deg, var(--panel-2), var(--panel));
     border: 1px solid var(--line);
     box-shadow: inset 0 1px 0 var(--rim), 0 10px 20px -12px rgba(0,0,0,0.5);
@@ -355,6 +356,28 @@
     opacity: 0; transform: translateY(10px);
     animation: rise .5s var(--ease) forwards;
   }
+  .deck-drag-handle { display: none; }
+  body.edit-mode .deck-btn {
+    border-color: rgba(69, 224, 196, 0.4);
+    animation: rise .5s var(--ease) forwards, wiggle 0.28s ease-in-out infinite;
+  }
+  body.edit-mode .deck-drag-handle {
+    display: flex; align-items: center; justify-content: center;
+    position: absolute; top: 6px; right: 6px; z-index: 3;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--panel-2); border: 1px solid var(--line);
+    color: var(--muted);
+    touch-action: none;
+  }
+  body.edit-mode .deck-drag-handle svg { width: 14px; height: 14px; }
+  @media (prefers-reduced-motion: reduce) {
+    body.edit-mode .deck-btn { animation: none; }
+  }
+  .drag-ghost {
+    box-shadow: 0 24px 48px -8px rgba(0,0,0,0.65), inset 0 1px 0 var(--rim);
+    opacity: 0.9;
+    scale: 1.05;
+  }
   .deck-btn:active { transform: scale(0.96); background: var(--accent-dim); }
   .deck-btn.destructive { border-color: rgba(242, 85, 95, 0.35); }
   .deck-btn.destructive:active { background: var(--hot-dim); }
@@ -362,8 +385,8 @@
     .deck-btn { animation: none; opacity: 1; transform: none; }
   }
   .deck-icon { width: 28px; height: 28px; }
-  .deck-icon svg { width: 100%; height: 100%; fill: var(--text); }
-  .deck-btn.destructive .deck-icon svg { fill: var(--hot); }
+  .deck-icon svg { width: 100%; height: 100%; color: var(--text); }
+  .deck-btn.destructive .deck-icon svg { color: var(--hot); }
   .deck-label {
     font-size: 12px; font-weight: 600; text-align: center;
     line-height: 1.2;
@@ -375,20 +398,77 @@
   .deck-grid .deck-btn:nth-child(6) { animation-delay: .2s; }
   .deck-grid .deck-btn:nth-child(n+7) { animation-delay: .24s; }
 
+  .shortcuts {
+    margin: 12px 18px 0;
+    background: linear-gradient(165deg, var(--panel-2), var(--panel));
+    border: 1px solid var(--line);
+    box-shadow: inset 0 1px 0 var(--rim), 0 10px 24px -12px rgba(0,0,0,0.5);
+    border-radius: var(--radius);
+    padding: 16px 14px;
+    flex: 0 0 auto;
+  }
+  .shortcuts-title {
+    font-size: 11px; letter-spacing: 2px; color: var(--muted);
+    font-weight: 700; text-transform: uppercase; margin-bottom: 12px;
+  }
+  .shortcuts-grid {
+    display: flex; flex-wrap: wrap; gap: 10px;
+    min-height: 66px;
+  }
+  .shortcuts-hint {
+    font-size: 12px; color: var(--muted);
+    padding: 20px 4px; text-align: center; width: 100%;
+  }
+  .shortcut-tile {
+    position: relative;
+    width: 66px;
+    display: flex; flex-direction: column; align-items: center; gap: 6px;
+    padding: 12px 4px;
+    background: var(--panel-2); border: 1px solid var(--line);
+    border-radius: 14px;
+    color: var(--text);
+  }
+  .shortcut-tile:active { transform: scale(0.96); background: var(--accent-dim); }
+  .shortcut-tile .deck-icon { width: 20px; height: 20px; }
+  .shortcut-label { font-size: 10px; font-weight: 600; text-align: center; line-height: 1.15; }
+  .shortcut-remove {
+    display: none;
+    position: absolute; top: -7px; right: -7px; z-index: 2;
+    width: 20px; height: 20px; border-radius: 50%;
+    background: var(--hot); color: #2a0a0d;
+    align-items: center; justify-content: center;
+  }
+  .shortcut-remove svg { width: 12px; height: 12px; }
+  body.edit-mode .shortcut-remove { display: flex; }
+  .shortcuts.drop-target {
+    border-color: var(--accent);
+    box-shadow: inset 0 1px 0 var(--rim), 0 0 0 2px rgba(69, 224, 196, 0.3);
+  }
+
   @media (orientation: landscape) {
+    /* grid-template-rows is explicit (not auto) because this WebView's grid implementation
+       under-measures a stacked-flex child's (.media) true height during auto row-sizing,
+       letting it overflow into the next row — same class of engine quirk as the earlier
+       flex-basis bug. An explicit minmax lower bound sidesteps the miscalculation. */
     #page-dashboard {
       display: grid;
       grid-template-columns: 3fr 2fr;
+      grid-template-rows: auto minmax(340px, auto) auto auto;
       height: 100%;
       align-content: start;
+      row-gap: 16px;
     }
     #page-dashboard > header { grid-column: 1 / -1; }
     #page-dashboard > #err { grid-column: 1 / -1; }
     #page-dashboard > .widget {
       min-width: 0;
       margin: 10px 18px;
-      align-self: center;
+      align-self: start;
     }
+    /* Shortcuts holds a flex-wrap tile grid that benefits from width, and with 3 widgets
+       in a 2-column grid it's always the odd one out — give it its own full-width row
+       rather than letting auto-placement wrap it under a single column awkwardly. */
+    #page-dashboard > .shortcuts { grid-column: 1 / -1; }
     #page-dashboard > .meters .meter-track { min-height: 60px; }
     #page-dashboard > .meters .meter-value { font-size: 19px; margin-top: 10px; }
     #page-dashboard > .spacer { display: none; }
@@ -408,10 +488,10 @@
         </div>
         <div class="header-right">
           <button id="editBtn" aria-label="Edit layout">
-            <svg viewBox="0 0 24 24"><path d="M4 5h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4zM4 11h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4zM4 17h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/></svg>
           </button>
           <button id="castBtn" aria-label="Open extended display">
-            <svg viewBox="0 0 24 24"><path d="M21 3H3a2 2 0 00-2 2v3h2V5h18v14h-7v2h7a2 2 0 002-2V5a2 2 0 00-2-2zM1 18v3h3a3 3 0 00-3-3zm0-4v2a5 5 0 015 5h2a7 7 0 00-7-7zm0-4v2a9 9 0 019 9h2a11 11 0 00-11-11z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 8V6a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-6"/><path d="M2 12a9 9 0 0 1 8 8"/><path d="M2 16a5 5 0 0 1 4 4"/><line x1="2" x2="2.01" y1="20" y2="20"/></svg>
           </button>
           <div id="clock">--:--</div>
         </div>
@@ -419,7 +499,7 @@
 
       <div class="meters widget" data-widget="meters">
         <div class="widget-handle" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><path d="M9 6a2 2 0 114 0 2 2 0 01-4 0zm0 6a2 2 0 114 0 2 2 0 01-4 0zm0 6a2 2 0 114 0 2 2 0 01-4 0zm6-12a2 2 0 114 0 2 2 0 01-4 0zm0 6a2 2 0 114 0 2 2 0 01-4 0zm0 6a2 2 0 114 0 2 2 0 01-4 0z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>
         </div>
         <div class="meter-col">
           <div class="tag">CPU</div>
@@ -446,10 +526,10 @@
 
       <div class="media widget" data-widget="media">
         <div class="widget-handle" aria-hidden="true">
-          <svg viewBox="0 0 24 24"><path d="M9 6a2 2 0 114 0 2 2 0 01-4 0zm0 6a2 2 0 114 0 2 2 0 01-4 0zm0 6a2 2 0 114 0 2 2 0 01-4 0zm6-12a2 2 0 114 0 2 2 0 01-4 0zm0 6a2 2 0 114 0 2 2 0 01-4 0zm0 6a2 2 0 114 0 2 2 0 01-4 0z"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>
         </div>
         <div class="np">
-          <div class="np-art" id="npArt"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13M9 18a3 3 0 11-6 0 3 3 0 016 0zm12-2a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
+          <div class="np-art" id="npArt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></div>
           <div class="np-text">
             <div class="np-title" id="npTitle">Nothing playing</div>
             <div class="np-artist" id="npArtist">&nbsp;</div>
@@ -464,26 +544,35 @@
         </div>
         <div class="transport">
           <button class="ctl" data-action="prev" aria-label="Previous">
-            <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.971 4.285A2 2 0 0 1 21 6v12a2 2 0 0 1-3.029 1.715l-9.997-5.998a2 2 0 0 1-.003-3.432z"/><path d="M3 20V4"/></svg>
           </button>
           <button class="ctl play" data-action="playpause" aria-label="Play/Pause" id="playBtn">
-            <svg viewBox="0 0 24 24" id="playIcon"><path d="M8 5v14l11-7z"/></svg>
+            <svg viewBox="0 0 24 24" id="playIcon"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg>
           </button>
           <button class="ctl" data-action="next" aria-label="Next">
-            <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 6l8.5 6L6 18z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 4v16"/><path d="M6.029 4.285A2 2 0 0 0 3 6v12a2 2 0 0 0 3.029 1.715l9.997-5.998a2 2 0 0 0 .003-3.432z"/></svg>
           </button>
         </div>
         <div class="volume">
           <button class="ctl small" data-action="voldown" aria-label="Volume down">
-            <svg viewBox="0 0 24 24"><path d="M3 10v4h4l5 5V5L7 10z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/></svg>
           </button>
           <button class="ctl small" data-action="mute" aria-label="Mute">
-            <svg viewBox="0 0 24 24"><path d="M16.5 12 21 7.5l-1.5-1.5L15 10.5 10.5 6 9 7.5 13.5 12 9 16.5 10.5 18l4.5-4.5 4.5 4.5L21 16.5z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><line x1="22" x2="16" y1="9" y2="15"/><line x1="16" x2="22" y1="9" y2="15"/></svg>
           </button>
           <button class="ctl small" data-action="volup" aria-label="Volume up">
-            <svg viewBox="0 0 24 24"><path d="M3 10v4h4l5 5V5L7 10zm11.5 2A4.5 4.5 0 0 0 13 8v8a4.5 4.5 0 0 0 1.5-6z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></svg>
           </button>
         </div>
+        <div class="widget-resize" aria-hidden="true"></div>
+      </div>
+
+      <div class="shortcuts widget" data-widget="shortcuts">
+        <div class="widget-handle" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+        </div>
+        <div class="shortcuts-title">Shortcuts</div>
+        <div class="shortcuts-grid" id="shortcutsGrid"></div>
         <div class="widget-resize" aria-hidden="true"></div>
       </div>
 
@@ -495,19 +584,23 @@
   <div class="page-dots" id="pageDots"></div>
 
 <script>
+// Lucide icon paths (MIT) — consistent stroke-outline language across every icon in the app,
+// rather than mixed hand-drawn shapes, so the icon set reads as one deliberate design system.
 const ICONS = {
-  globe: '<path d="M12 2a10 10 0 100 20 10 10 0 000-20zm6.9 8h-3.05a15.6 15.6 0 00-1.2-5.3A8.03 8.03 0 0118.9 10zM12 4.05c.8 1.15 1.4 2.85 1.7 4.95h-3.4c.3-2.1.9-3.8 1.7-4.95zM4.26 12h3.06a15.6 15.6 0 001.2 5.3A8.03 8.03 0 014.26 12zm3.06-2H4.26a8.03 8.03 0 014.26-5.3 15.6 15.6 0 00-1.2 5.3zM12 19.95c-.8-1.15-1.4-2.85-1.7-4.95h3.4c-.3 2.1-.9 3.8-1.7 4.95zM10.3 14a13.5 13.5 0 010-4h3.4a13.5 13.5 0 010 4zm4.45 3.3a15.6 15.6 0 001.2-5.3h3.05a8.03 8.03 0 01-4.25 5.3z"/>',
-  folder: '<path d="M10 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V8a2 2 0 00-2-2h-8l-2-2z"/>',
-  file: '<path d="M6 2h9l5 5v15a1 1 0 01-1 1H6a1 1 0 01-1-1V3a1 1 0 011-1zm8 1.5V8h4.5z"/>',
-  activity: '<path d="M3 12h4l2-7 4 14 3-9 2 2h3" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
-  lock: '<path d="M12 2a4 4 0 00-4 4v3H7a2 2 0 00-2 2v9a2 2 0 002 2h10a2 2 0 002-2v-9a2 2 0 00-2-2h-1V6a4 4 0 00-4-4zm0 2a2 2 0 012 2v3h-4V6a2 2 0 012-2z"/>',
-  moon: '<path d="M20.7 15.3A9 9 0 1110.7 3.3a7 7 0 0010 12z"/>',
-  keyboard: '<path d="M3 6h18a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V7a1 1 0 011-1zm2 3v2h2V9H5zm4 0v2h2V9H9zm4 0v2h2V9h-2zm4 0v2h2V9h-2zM5 13v2h2v-2H5zm4 0v2h6v-2H9zm8 0v2h2v-2h-2z"/>',
-  default: '<path d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z"/>',
+  globe: '<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>',
+  folder: '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
+  file: '<path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M10 9H8"/><path d="M16 13H8"/><path d="M16 17H8"/>',
+  activity: '<path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"/>',
+  lock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  moon: '<path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/>',
+  keyboard: '<path d="M10 8h.01"/><path d="M12 12h.01"/><path d="M14 8h.01"/><path d="M16 12h.01"/><path d="M18 8h.01"/><path d="M6 8h.01"/><path d="M7 16h10"/><path d="M8 12h.01"/><rect width="20" height="16" x="2" y="4" rx="2"/>',
+  star: '<path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/>',
+  x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
+  default: '<rect width="7" height="7" x="3" y="3" rx="1"/><rect width="7" height="7" x="14" y="3" rx="1"/><rect width="7" height="7" x="14" y="14" rx="1"/><rect width="7" height="7" x="3" y="14" rx="1"/>',
 };
 
 function iconSvg(name) {
-  return '<svg viewBox="0 0 24 24">' + (ICONS[name] || ICONS.default) + '</svg>';
+  return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[name] || ICONS.default) + '</svg>';
 }
 
 const pager = document.getElementById('pager');
@@ -536,10 +629,14 @@ async function loadDeckPages() {
       (page.buttons || []).forEach((btn) => {
         const b = document.createElement('button');
         b.className = 'deck-btn' + (btn.destructive ? ' destructive' : '');
-        b.innerHTML = '<div class="deck-icon">' + iconSvg(btn.icon) + '</div><div class="deck-label">' + btn.label + '</div>';
+        b.innerHTML =
+          '<div class="deck-drag-handle" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg></div>' +
+          '<div class="deck-icon">' + iconSvg(btn.icon) + '</div><div class="deck-label">' + btn.label + '</div>';
         b.addEventListener('click', () => {
+          if (document.body.classList.contains('edit-mode')) return;
           fetch('/api/action/' + btn.id, { method: 'POST' }).catch(() => {});
         });
+        b.querySelector('.deck-drag-handle').addEventListener('pointerdown', (e) => startDeckDrag(e, b, btn));
         grid.appendChild(b);
       });
       section.appendChild(title);
@@ -557,6 +654,109 @@ pager.addEventListener('scroll', () => {
     d.classList.toggle('active', i === index);
   });
 });
+
+// --- Pinned shortcuts: drag a Stream Deck button to the Shortcuts widget on the home page ---
+let pinnedShortcuts = [];
+function loadShortcuts() {
+  try { pinnedShortcuts = JSON.parse(localStorage.getItem('dock-shortcuts') || '[]'); } catch (err) { pinnedShortcuts = []; }
+  renderShortcuts();
+}
+function saveShortcuts() {
+  localStorage.setItem('dock-shortcuts', JSON.stringify(pinnedShortcuts));
+}
+function addShortcut(action) {
+  if (pinnedShortcuts.some((s) => s.id === action.id)) return;
+  pinnedShortcuts.push({ id: action.id, label: action.label, icon: action.icon, destructive: !!action.destructive });
+  saveShortcuts();
+  renderShortcuts();
+}
+function removeShortcut(id) {
+  pinnedShortcuts = pinnedShortcuts.filter((s) => s.id !== id);
+  saveShortcuts();
+  renderShortcuts();
+}
+function renderShortcuts() {
+  const grid = document.getElementById('shortcutsGrid');
+  grid.innerHTML = '';
+  if (pinnedShortcuts.length === 0) {
+    grid.innerHTML = '<div class="shortcuts-hint">Drag actions here from Stream Deck pages to pin them</div>';
+    return;
+  }
+  pinnedShortcuts.forEach((s) => {
+    const tile = document.createElement('div');
+    tile.className = 'shortcut-tile' + (s.destructive ? ' destructive' : '');
+    tile.innerHTML =
+      '<div class="deck-icon">' + iconSvg(s.icon) + '</div>' +
+      '<div class="shortcut-label">' + s.label + '</div>' +
+      '<div class="shortcut-remove">' + iconSvg('x') + '</div>';
+    tile.addEventListener('click', () => {
+      if (document.body.classList.contains('edit-mode')) return;
+      fetch('/api/action/' + s.id, { method: 'POST' }).catch(() => {});
+    });
+    tile.querySelector('.shortcut-remove').addEventListener('click', (e) => {
+      e.stopPropagation();
+      removeShortcut(s.id);
+    });
+    grid.appendChild(tile);
+  });
+}
+
+// Cross-page drag: pick up a deck button via its handle, auto-scroll the pager toward
+// home when dragged near the left edge, drop onto the Shortcuts widget to pin it there.
+function startDeckDrag(startEvt, btn, actionData) {
+  startEvt.preventDefault();
+  startEvt.stopPropagation();
+
+  const rect = btn.getBoundingClientRect();
+  const ghost = btn.cloneNode(true);
+  ghost.classList.add('drag-ghost');
+  ghost.style.position = 'fixed';
+  ghost.style.zIndex = '50';
+  ghost.style.pointerEvents = 'none';
+  ghost.style.width = rect.width + 'px';
+  ghost.style.left = rect.left + 'px';
+  ghost.style.top = rect.top + 'px';
+  ghost.style.margin = '0';
+  ghost.style.opacity = '0.9';
+  document.body.appendChild(ghost);
+  btn.style.opacity = '0.35';
+
+  let scrollTimer = null;
+  const shortcutsWidget = document.querySelector('.shortcuts');
+
+  function onMove(ev) {
+    ghost.style.left = (ev.clientX - rect.width / 2) + 'px';
+    ghost.style.top = (ev.clientY - rect.height / 2) + 'px';
+
+    if (ev.clientX < 60 && pager.scrollLeft > 0) {
+      if (!scrollTimer) scrollTimer = setInterval(() => { pager.scrollLeft -= 24; }, 16);
+    } else if (scrollTimer) {
+      clearInterval(scrollTimer);
+      scrollTimer = null;
+    }
+
+    const overShortcuts = elementIsOver(shortcutsWidget, ev.clientX, ev.clientY);
+    shortcutsWidget.classList.toggle('drop-target', overShortcuts);
+  }
+  function onUp(ev) {
+    if (scrollTimer) { clearInterval(scrollTimer); scrollTimer = null; }
+    ghost.remove();
+    btn.style.opacity = '';
+    shortcutsWidget.classList.remove('drop-target');
+    if (elementIsOver(shortcutsWidget, ev.clientX, ev.clientY)) {
+      addShortcut(actionData);
+    }
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+  }
+  document.addEventListener('pointermove', onMove);
+  document.addEventListener('pointerup', onUp);
+}
+
+function elementIsOver(el, x, y) {
+  const r = el.getBoundingClientRect();
+  return x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+}
 
 function setMeter(el, pct) {
   const p = Math.max(0, Math.min(100, pct === null ? 0 : pct));
@@ -696,8 +896,8 @@ document.querySelectorAll('button[data-action]').forEach((btn) => {
     if (action === 'playpause') {
       isPlaying = !isPlaying;
       document.getElementById('playIcon').innerHTML = isPlaying
-        ? '<path d="M8 5v14l11-7z"/>'
-        : '<path d="M7 5h4v14H7zm6 0h4v14h-4z"/>';
+        ? '<path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/>'
+        : '<rect x="14" y="3" width="5" height="18" rx="1"/><rect x="5" y="3" width="5" height="18" rx="1"/>';
     }
     fetch('/api/media/' + action, { method: 'POST' }).catch(() => {});
   });
@@ -710,6 +910,7 @@ setInterval(refresh, 2000);
 refreshNowPlaying();
 setInterval(refreshNowPlaying, 3000);
 loadDeckPages();
+loadShortcuts();
 
 if (window.AndroidBridge && window.AndroidBridge.launchSpacedesk) {
   const castBtn = document.getElementById('castBtn');
