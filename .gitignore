@@ -1,0 +1,26 @@
+# Build toolchain (large, machine-specific — install separately)
+toolchain/
+platform-tools/
+
+# Node
+node_modules/
+
+# Android build artifacts & signing keys (NEVER commit keystores)
+app/build/
+*.keystore
+*.jks
+*.idsig
+*.apk
+*.dex
+
+# Local machine config with secrets (webhook tokens, paths) — use the .example template
+start-dock.ps1
+
+# Scratch / temp / captured output
+*.output
+*.log
+public/fonts/*.woff2.bak
+
+# OS
+Thumbs.db
+.DS_Store

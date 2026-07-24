@@ -1,0 +1,862 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Dock</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icon.svg">
+<meta name="theme-color" content="#0a0c0f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+  @font-face {
+    font-family: "Inter";
+    src: url("/fonts/Inter.woff2") format("woff2");
+    font-weight: 100 900;
+    font-style: normal;
+    font-display: swap;
+  }
+  :root {
+    color-scheme: dark;
+    --bg: #050608;
+    --panel: #15181e;
+    --panel-2: #1c2028;
+    --line: rgba(255, 255, 255, 0.07);
+    --rim: rgba(255, 255, 255, 0.14);
+    --text: #f3f4f6;
+    --muted: #7d8590;
+    --accent: #45e0c4;
+    --accent-dim: #1f4941;
+    --warn: #f2b84b;
+    --hot: #f2555f;
+    --hot-dim: #3a1f22;
+    --track: #20242e;
+    --radius: 22px;
+    --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    margin: 0; height: 100%;
+    background: var(--bg); color: var(--text);
+    font-family: "Inter", "SF Pro Text", -apple-system, "Segoe UI", Roboto, sans-serif;
+    overflow: hidden;
+    user-select: none;
+  }
+  .num { font-variant-numeric: tabular-nums; }
+
+  #glow {
+    position: fixed; inset: -10% -10%; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(69, 224, 196, 0.12), transparent 45%),
+      radial-gradient(circle at 85% 100%, rgba(69, 224, 196, 0.06), transparent 40%);
+    animation: drift 22s ease-in-out infinite alternate;
+  }
+  #grain {
+    position: fixed; inset: 0; z-index: 2; pointer-events: none;
+    opacity: 0.025; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  @keyframes drift {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(-2%, 2%) scale(1.05); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    #glow { animation: none; }
+  }
+
+  .pager {
+    position: relative; z-index: 1;
+    display: flex;
+    height: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .pager::-webkit-scrollbar { display: none; }
+  .page {
+    flex: 0 0 100vw;
+    max-width: 100vw;
+    height: 100%;
+    scroll-snap-align: start;
+    overflow-y: auto;
+    scrollbar-width: none;
+    display: flex;
+    flex-direction: column;
+  }
+  .page::-webkit-scrollbar { display: none; }
+
+  .page-dots {
+    position: fixed;
+    bottom: 14px;
+    left: 0; right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 7px;
+    z-index: 5;
+  }
+  .page-dots .pd {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--line);
+    transition: background .25s ease, transform .25s ease;
+  }
+  .page-dots .pd.active {
+    background: var(--accent);
+    transform: scale(1.4);
+  }
+
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 22px 22px 6px;
+    flex: 0 0 auto;
+  }
+  .brand { display: flex; align-items: center; gap: 9px; }
+  .brand .dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--muted);
+  }
+  .brand .dot.live { background: var(--accent); box-shadow: 0 0 10px var(--accent); animation: pulse 2s ease-in-out infinite; }
+  .brand .dot.err { background: var(--hot); box-shadow: 0 0 10px var(--hot); }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .4; } }
+  .brand .word { font-size: 13px; letter-spacing: 3.5px; color: var(--muted); font-weight: 700; }
+  #clock { font-size: 15px; color: var(--muted); font-weight: 500; }
+  .header-right { display: flex; align-items: center; gap: 16px; }
+  #castBtn {
+    width: 28px; height: 28px; display: none;
+    align-items: center; justify-content: center;
+    color: var(--muted); background: none; border: none;
+  }
+  #castBtn svg { width: 20px; height: 20px; fill: currentColor; }
+  #castBtn:active { color: var(--accent); }
+  #editBtn {
+    width: 28px; height: 28px; display: flex;
+    align-items: center; justify-content: center;
+    color: var(--muted); background: none; border: none;
+  }
+  #editBtn svg { width: 18px; height: 18px; fill: currentColor; }
+  #editBtn.active { color: var(--accent); }
+
+  @keyframes rise { to { opacity: 1; transform: translateY(0); } }
+
+  /* Edit mode: widgets become draggable (reorder) and resizable, like a QS/home-screen editor */
+  .widget { position: relative; touch-action: pan-y; overflow: hidden; }
+  .widget-handle, .widget-resize { display: none; }
+  body.edit-mode .widget {
+    border-color: rgba(69, 224, 196, 0.4);
+    animation: rise .6s var(--ease) forwards, wiggle 0.28s ease-in-out infinite;
+  }
+  body.edit-mode .widget.dragging {
+    animation: none;
+    z-index: 20;
+    box-shadow: 0 24px 48px -8px rgba(0,0,0,0.65), inset 0 1px 0 var(--rim);
+    opacity: 0.85 !important;
+    scale: 1.03;
+    transition: box-shadow .2s var(--ease), opacity .2s var(--ease), scale .2s var(--ease);
+  }
+  @keyframes wiggle {
+    0%, 100% { transform: rotate(-0.4deg); }
+    50% { transform: rotate(0.4deg); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    body.edit-mode .widget { animation: none; }
+  }
+  body.edit-mode .widget-handle {
+    display: flex; align-items: center; justify-content: center;
+    position: absolute; top: 8px; right: 8px; z-index: 3;
+    width: 30px; height: 30px; border-radius: 50%;
+    background: var(--panel-2); border: 1px solid var(--line);
+    color: var(--muted);
+    touch-action: none;
+  }
+  body.edit-mode .widget-handle svg { width: 16px; height: 16px; fill: currentColor; }
+  body.edit-mode .widget-resize {
+    display: block;
+    position: absolute; bottom: 6px; right: 6px; z-index: 3;
+    width: 22px; height: 22px;
+    border-radius: 6px;
+    background: var(--panel-2); border: 1px solid var(--line);
+    touch-action: none;
+  }
+  body.edit-mode .widget-resize::after {
+    content: '';
+    position: absolute; right: 5px; bottom: 5px;
+    width: 8px; height: 8px;
+    border-right: 2px solid var(--muted);
+    border-bottom: 2px solid var(--muted);
+    border-radius: 0 0 2px 0;
+  }
+
+  .meters {
+    position: relative;
+    margin: 10px 18px 0;
+    background: linear-gradient(165deg, var(--panel-2), var(--panel));
+    border: 1px solid var(--line);
+    box-shadow: inset 0 1px 0 var(--rim), 0 10px 24px -12px rgba(0,0,0,0.5);
+    border-radius: var(--radius);
+    padding: 18px 6px 16px;
+    display: flex;
+    flex: 1 1 auto;
+    opacity: 0; transform: translateY(10px);
+    animation: rise .6s var(--ease) forwards;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .meters { animation: none; opacity: 1; transform: none; }
+  }
+  .meter-col {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex; flex-direction: column; align-items: center;
+    padding: 0 12px;
+  }
+  .meter-col + .meter-col { border-left: 1px solid var(--line); }
+  .meter-col .tag {
+    font-size: 11px; letter-spacing: 2px; color: var(--muted);
+    font-weight: 700; margin-bottom: 12px; text-transform: uppercase;
+  }
+  .meter-track {
+    position: relative;
+    width: 30px;
+    flex: 1 1 auto;
+    min-height: 100px;
+    background: var(--track);
+    border-radius: 15px;
+    overflow: hidden;
+    display: flex; align-items: flex-end;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.4);
+  }
+  .meter-track::after {
+    content: '';
+    position: absolute; inset: 0; z-index: 2; pointer-events: none;
+    background-image: repeating-linear-gradient(0deg, transparent, transparent 9px, rgba(0,0,0,0.32) 9px, rgba(0,0,0,0.32) 10px);
+  }
+  .meter-fill {
+    position: relative; z-index: 1;
+    width: 100%; height: 0%;
+    background: linear-gradient(180deg, var(--accent), var(--accent-dim));
+    border-radius: 15px;
+    transition: background .4s var(--ease);
+  }
+  /* Live shimmer — a soft highlight sweeps up the active fill, signalling live data */
+  .meter-fill::before {
+    content: '';
+    position: absolute; left: 0; right: 0; z-index: 3; pointer-events: none;
+    height: 40%; top: -40%;
+    background: linear-gradient(180deg, transparent, rgba(255,255,255,0.28), transparent);
+    animation: sweep 2.6s var(--ease) infinite;
+  }
+  @keyframes sweep {
+    0% { top: 100%; opacity: 0; }
+    15% { opacity: 1; }
+    85% { opacity: 1; }
+    100% { top: -40%; opacity: 0; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .meter-fill::before { animation: none; display: none; }
+  }
+  .meter-value { font-size: 24px; font-weight: 700; margin-top: 14px; letter-spacing: -0.02em; line-height: 1; }
+  .meter-sub { font-size: 11px; color: var(--muted); margin-top: 6px; text-align: center; }
+
+  .media {
+    margin: 12px 18px 0;
+    background: linear-gradient(165deg, var(--panel-2), var(--panel));
+    border: 1px solid var(--line);
+    box-shadow: inset 0 1px 0 var(--rim), 0 14px 30px -14px rgba(0,0,0,0.55);
+    border-radius: 26px;
+    padding: 20px 18px;
+    flex: 0 0 auto;
+    opacity: 0; transform: translateY(10px);
+    animation: rise .6s var(--ease) .24s forwards;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .media { animation: none; opacity: 1; transform: none; }
+  }
+  .np { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+  .np-art {
+    width: 52px; height: 52px; border-radius: 14px;
+    background: var(--track);
+    display: flex; align-items: center; justify-content: center;
+    flex: 0 0 auto;
+  }
+  .np-art svg { width: 24px; height: 24px; fill: var(--muted); }
+  .np-text { min-width: 0; flex: 1; }
+  .np-title { font-size: 15px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .np-artist { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+  .np-seek { margin-bottom: 18px; }
+  .np-seek-track {
+    height: 4px; border-radius: 2px; background: var(--track); position: relative; overflow: hidden;
+  }
+  .np-seek-fill {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    background: var(--accent); border-radius: 2px; width: 0%;
+    transition: width .8s linear;
+  }
+  .np-times { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 6px; }
+
+  .media .transport {
+    display: flex; align-items: center; justify-content: center; gap: 26px;
+  }
+  .media .volume {
+    display: flex; align-items: center; justify-content: center; gap: 18px;
+    margin-top: 16px;
+  }
+  button.ctl {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    box-shadow: inset 0 1px 0 var(--rim);
+    color: var(--text);
+    border-radius: 50%;
+    width: 54px; height: 54px;
+    display: flex; align-items: center; justify-content: center;
+    transition: transform .2s var(--ease), background .2s var(--ease);
+  }
+  button.ctl svg { width: 21px; height: 21px; fill: var(--text); }
+  button.ctl.play {
+    width: 70px; height: 70px; background: var(--accent); border-color: var(--accent);
+    animation: breathe 3.4s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%, 100% { box-shadow: 0 0 20px -6px rgba(69, 224, 196, 0.45); }
+    50% { box-shadow: 0 0 32px 0px rgba(69, 224, 196, 0.65); }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    button.ctl.play { animation: none; box-shadow: 0 0 24px -4px rgba(69, 224, 196, 0.5); }
+  }
+  button.ctl.play svg { fill: #04241d; width: 28px; height: 28px; }
+  button.ctl.small { width: 44px; height: 44px; }
+  button.ctl.small svg { width: 17px; height: 17px; }
+  button.ctl:active { transform: scale(0.94); background: var(--accent-dim); }
+  button.ctl.play:active { background: var(--accent); opacity: .85; transform: scale(0.96); }
+
+  #err {
+    margin: 12px 18px 0;
+    text-align: center;
+    font-size: 12px;
+    color: var(--hot);
+    min-height: 16px;
+    flex: 0 0 auto;
+  }
+  .spacer { flex: 1 1 auto; }
+
+  .deck-title {
+    padding: 22px 20px 4px;
+    font-size: 13px; letter-spacing: 2.2px; text-transform: uppercase;
+    color: var(--muted); font-weight: 700;
+    flex: 0 0 auto;
+  }
+  .deck-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    padding: 12px 18px 70px;
+    flex: 1 1 auto;
+    align-content: start;
+  }
+  .deck-btn {
+    background: linear-gradient(165deg, var(--panel-2), var(--panel));
+    border: 1px solid var(--line);
+    box-shadow: inset 0 1px 0 var(--rim), 0 10px 20px -12px rgba(0,0,0,0.5);
+    border-radius: 20px;
+    padding: 20px 6px 14px;
+    color: var(--text);
+    display: flex; flex-direction: column; align-items: center; gap: 10px;
+    transition: transform .2s var(--ease), background .2s var(--ease), border-color .2s var(--ease);
+    opacity: 0; transform: translateY(10px);
+    animation: rise .5s var(--ease) forwards;
+  }
+  .deck-btn:active { transform: scale(0.96); background: var(--accent-dim); }
+  .deck-btn.destructive { border-color: rgba(242, 85, 95, 0.35); }
+  .deck-btn.destructive:active { background: var(--hot-dim); }
+  @media (prefers-reduced-motion: reduce) {
+    .deck-btn { animation: none; opacity: 1; transform: none; }
+  }
+  .deck-icon { width: 28px; height: 28px; }
+  .deck-icon svg { width: 100%; height: 100%; fill: var(--text); }
+  .deck-btn.destructive .deck-icon svg { fill: var(--hot); }
+  .deck-label {
+    font-size: 12px; font-weight: 600; text-align: center;
+    line-height: 1.2;
+  }
+  .deck-grid .deck-btn:nth-child(2) { animation-delay: .04s; }
+  .deck-grid .deck-btn:nth-child(3) { animation-delay: .08s; }
+  .deck-grid .deck-btn:nth-child(4) { animation-delay: .12s; }
+  .deck-grid .deck-btn:nth-child(5) { animation-delay: .16s; }
+  .deck-grid .deck-btn:nth-child(6) { animation-delay: .2s; }
+  .deck-grid .deck-btn:nth-child(n+7) { animation-delay: .24s; }
+
+  @media (orientation: landscape) {
+    #page-dashboard {
+      display: grid;
+      grid-template-columns: 3fr 2fr;
+      height: 100%;
+      align-content: start;
+    }
+    #page-dashboard > header { grid-column: 1 / -1; }
+    #page-dashboard > #err { grid-column: 1 / -1; }
+    #page-dashboard > .widget {
+      min-width: 0;
+      margin: 10px 18px;
+      align-self: center;
+    }
+    #page-dashboard > .meters .meter-track { min-height: 60px; }
+    #page-dashboard > .meters .meter-value { font-size: 19px; margin-top: 10px; }
+    #page-dashboard > .spacer { display: none; }
+    .deck-grid { grid-template-columns: repeat(5, 1fr); }
+  }
+</style>
+</head>
+<body>
+  <div id="glow"></div>
+  <div id="grain"></div>
+  <div class="pager" id="pager">
+    <section class="page" id="page-dashboard">
+      <header>
+        <div class="brand">
+          <span class="dot" id="liveDot"></span>
+          <span class="word">DOCK</span>
+        </div>
+        <div class="header-right">
+          <button id="editBtn" aria-label="Edit layout">
+            <svg viewBox="0 0 24 24"><path d="M4 5h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4zM4 11h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4zM4 17h4v4H4zm6 0h4v4h-4zm6 0h4v4h-4z"/></svg>
+          </button>
+          <button id="castBtn" aria-label="Open extended display">
+            <svg viewBox="0 0 24 24"><path d="M21 3H3a2 2 0 00-2 2v3h2V5h18v14h-7v2h7a2 2 0 002-2V5a2 2 0 00-2-2zM1 18v3h3a3 3 0 00-3-3zm0-4v2a5 5 0 015 5h2a7 7 0 00-7-7zm0-4v2a9 9 0 019 9h2a11 11 0 00-11-11z"/></svg>
+          </button>
+          <div id="clock">--:--</div>
+        </div>
+      </header>
+
+      <div class="meters widget" data-widget="meters">
+        <div class="widget-handle" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M9 6a2 2 0 114 0 2 2 0 01-4 0zm0 6a2 2 0 114 0 2 2 0 01-4 0zm0 6a2 2 0 114 0 2 2 0 01-4 0zm6-12a2 2 0 114 0 2 2 0 01-4 0zm0 6a2 2 0 114 0 2 2 0 01-4 0zm0 6a2 2 0 114 0 2 2 0 01-4 0z"/></svg>
+        </div>
+        <div class="meter-col">
+          <div class="tag">CPU</div>
+          <div class="meter-track"><div class="meter-fill" id="meterCpu"></div></div>
+          <div class="meter-value num" id="cpuTemp">--</div>
+          <div class="meter-sub num" id="cpuLoad">-- % load</div>
+        </div>
+
+        <div class="meter-col">
+          <div class="tag">GPU</div>
+          <div class="meter-track"><div class="meter-fill" id="meterGpu"></div></div>
+          <div class="meter-value num" id="gpuMain">--</div>
+          <div class="meter-sub num" id="gpuSub">-- % load</div>
+        </div>
+
+        <div class="meter-col">
+          <div class="tag">RAM</div>
+          <div class="meter-track"><div class="meter-fill" id="meterRam"></div></div>
+          <div class="meter-value num" id="ramPct">--</div>
+          <div class="meter-sub num" id="ramGb">-- GB</div>
+        </div>
+        <div class="widget-resize" aria-hidden="true"></div>
+      </div>
+
+      <div class="media widget" data-widget="media">
+        <div class="widget-handle" aria-hidden="true">
+          <svg viewBox="0 0 24 24"><path d="M9 6a2 2 0 114 0 2 2 0 01-4 0zm0 6a2 2 0 114 0 2 2 0 01-4 0zm0 6a2 2 0 114 0 2 2 0 01-4 0zm6-12a2 2 0 114 0 2 2 0 01-4 0zm0 6a2 2 0 114 0 2 2 0 01-4 0zm0 6a2 2 0 114 0 2 2 0 01-4 0z"/></svg>
+        </div>
+        <div class="np">
+          <div class="np-art" id="npArt"><svg viewBox="0 0 24 24"><path d="M9 18V5l12-2v13M9 18a3 3 0 11-6 0 3 3 0 016 0zm12-2a3 3 0 11-6 0 3 3 0 016 0z"/></svg></div>
+          <div class="np-text">
+            <div class="np-title" id="npTitle">Nothing playing</div>
+            <div class="np-artist" id="npArtist">&nbsp;</div>
+          </div>
+        </div>
+        <div class="np-seek">
+          <div class="np-seek-track"><div class="np-seek-fill" id="seekFill"></div></div>
+          <div class="np-times">
+            <span id="seekPos">0:00</span>
+            <span id="seekDur">0:00</span>
+          </div>
+        </div>
+        <div class="transport">
+          <button class="ctl" data-action="prev" aria-label="Previous">
+            <svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg>
+          </button>
+          <button class="ctl play" data-action="playpause" aria-label="Play/Pause" id="playBtn">
+            <svg viewBox="0 0 24 24" id="playIcon"><path d="M8 5v14l11-7z"/></svg>
+          </button>
+          <button class="ctl" data-action="next" aria-label="Next">
+            <svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 6l8.5 6L6 18z"/></svg>
+          </button>
+        </div>
+        <div class="volume">
+          <button class="ctl small" data-action="voldown" aria-label="Volume down">
+            <svg viewBox="0 0 24 24"><path d="M3 10v4h4l5 5V5L7 10z"/></svg>
+          </button>
+          <button class="ctl small" data-action="mute" aria-label="Mute">
+            <svg viewBox="0 0 24 24"><path d="M16.5 12 21 7.5l-1.5-1.5L15 10.5 10.5 6 9 7.5 13.5 12 9 16.5 10.5 18l4.5-4.5 4.5 4.5L21 16.5z"/></svg>
+          </button>
+          <button class="ctl small" data-action="volup" aria-label="Volume up">
+            <svg viewBox="0 0 24 24"><path d="M3 10v4h4l5 5V5L7 10zm11.5 2A4.5 4.5 0 0 0 13 8v8a4.5 4.5 0 0 0 1.5-6z"/></svg>
+          </button>
+        </div>
+        <div class="widget-resize" aria-hidden="true"></div>
+      </div>
+
+      <div id="err"></div>
+      <div class="spacer"></div>
+    </section>
+    <!-- Stream Deck pages injected here at load time -->
+  </div>
+  <div class="page-dots" id="pageDots"></div>
+
+<script>
+const ICONS = {
+  globe: '<path d="M12 2a10 10 0 100 20 10 10 0 000-20zm6.9 8h-3.05a15.6 15.6 0 00-1.2-5.3A8.03 8.03 0 0118.9 10zM12 4.05c.8 1.15 1.4 2.85 1.7 4.95h-3.4c.3-2.1.9-3.8 1.7-4.95zM4.26 12h3.06a15.6 15.6 0 001.2 5.3A8.03 8.03 0 014.26 12zm3.06-2H4.26a8.03 8.03 0 014.26-5.3 15.6 15.6 0 00-1.2 5.3zM12 19.95c-.8-1.15-1.4-2.85-1.7-4.95h3.4c-.3 2.1-.9 3.8-1.7 4.95zM10.3 14a13.5 13.5 0 010-4h3.4a13.5 13.5 0 010 4zm4.45 3.3a15.6 15.6 0 001.2-5.3h3.05a8.03 8.03 0 01-4.25 5.3z"/>',
+  folder: '<path d="M10 4H4a2 2 0 00-2 2v12a2 2 0 002 2h16a2 2 0 002-2V8a2 2 0 00-2-2h-8l-2-2z"/>',
+  file: '<path d="M6 2h9l5 5v15a1 1 0 01-1 1H6a1 1 0 01-1-1V3a1 1 0 011-1zm8 1.5V8h4.5z"/>',
+  activity: '<path d="M3 12h4l2-7 4 14 3-9 2 2h3" fill="none" stroke="var(--text)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+  lock: '<path d="M12 2a4 4 0 00-4 4v3H7a2 2 0 00-2 2v9a2 2 0 002 2h10a2 2 0 002-2v-9a2 2 0 00-2-2h-1V6a4 4 0 00-4-4zm0 2a2 2 0 012 2v3h-4V6a2 2 0 012-2z"/>',
+  moon: '<path d="M20.7 15.3A9 9 0 1110.7 3.3a7 7 0 0010 12z"/>',
+  keyboard: '<path d="M3 6h18a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V7a1 1 0 011-1zm2 3v2h2V9H5zm4 0v2h2V9H9zm4 0v2h2V9h-2zm4 0v2h2V9h-2zM5 13v2h2v-2H5zm4 0v2h6v-2H9zm8 0v2h2v-2h-2z"/>',
+  default: '<path d="M4 4h7v7H4zm9 0h7v7h-7zM4 13h7v7H4zm9 0h7v7h-7z"/>',
+};
+
+function iconSvg(name) {
+  return '<svg viewBox="0 0 24 24">' + (ICONS[name] || ICONS.default) + '</svg>';
+}
+
+const pager = document.getElementById('pager');
+const pageDots = document.getElementById('pageDots');
+let pageCount = 1;
+
+function addDot(index) {
+  const dot = document.createElement('div');
+  dot.className = 'pd' + (index === 0 ? ' active' : '');
+  pageDots.appendChild(dot);
+}
+addDot(0);
+
+async function loadDeckPages() {
+  try {
+    const res = await fetch('/api/actions', { cache: 'no-store' });
+    const data = await res.json();
+    (data.pages || []).forEach((page) => {
+      const section = document.createElement('section');
+      section.className = 'page';
+      const title = document.createElement('div');
+      title.className = 'deck-title';
+      title.textContent = page.title || '';
+      const grid = document.createElement('div');
+      grid.className = 'deck-grid';
+      (page.buttons || []).forEach((btn) => {
+        const b = document.createElement('button');
+        b.className = 'deck-btn' + (btn.destructive ? ' destructive' : '');
+        b.innerHTML = '<div class="deck-icon">' + iconSvg(btn.icon) + '</div><div class="deck-label">' + btn.label + '</div>';
+        b.addEventListener('click', () => {
+          fetch('/api/action/' + btn.id, { method: 'POST' }).catch(() => {});
+        });
+        grid.appendChild(b);
+      });
+      section.appendChild(title);
+      section.appendChild(grid);
+      pager.appendChild(section);
+      addDot(pageCount);
+      pageCount += 1;
+    });
+  } catch (err) {}
+}
+
+pager.addEventListener('scroll', () => {
+  const index = Math.round(pager.scrollLeft / pager.clientWidth);
+  document.querySelectorAll('.page-dots .pd').forEach((d, i) => {
+    d.classList.toggle('active', i === index);
+  });
+});
+
+function setMeter(el, pct) {
+  const p = Math.max(0, Math.min(100, pct === null ? 0 : pct));
+  el.style.height = p + '%';
+  el.style.background = p >= 90
+    ? 'linear-gradient(180deg, var(--hot), var(--hot-dim))'
+    : p >= 70
+    ? 'linear-gradient(180deg, var(--warn), var(--accent-dim))'
+    : 'linear-gradient(180deg, var(--accent), var(--accent-dim))';
+}
+
+function num(raw) {
+  if (raw === null || raw === undefined) return null;
+  const n = parseFloat(String(raw).replace(/[^\d.\-]/g, ''));
+  return Number.isNaN(n) ? null : n;
+}
+
+function tempColor(el, v) {
+  el.style.color = v === null ? 'var(--muted)' : v >= 80 ? 'var(--hot)' : v >= 65 ? 'var(--warn)' : 'var(--text)';
+}
+
+// Exponential moving average — smooths jittery raw sensor readings between polls
+// without masking real trends over a few seconds.
+const smoothed = {};
+function smooth(key, raw) {
+  if (raw === null) return null;
+  if (smoothed[key] === undefined) smoothed[key] = raw;
+  else smoothed[key] = smoothed[key] * 0.65 + raw * 0.35;
+  return smoothed[key];
+}
+
+function fmtTime(sec) {
+  if (!sec || Number.isNaN(sec)) return '0:00';
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60);
+  return m + ':' + String(s).padStart(2, '0');
+}
+
+let isPlaying = true;
+
+// Poll sets target values; a requestAnimationFrame loop glides the displayed
+// numbers toward them every frame, so readouts never snap — they animate live.
+const targets = { cpuTemp: null, cpuLoad: null, gpuTemp: null, gpuLoad: null, ramPct: null };
+const display = {};
+let gpuHasTemp = false;
+let ramGbText = '--';
+
+async function refresh() {
+  try {
+    const res = await fetch('/api/stats', { cache: 'no-store' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'error');
+
+    targets.cpuTemp = smooth('cpuTemp', num(data.cpuTemp));
+    targets.cpuLoad = smooth('cpuLoad', num(data.cpuLoad));
+    targets.gpuTemp = smooth('gpuTemp', num(data.gpuTemp));
+    targets.gpuLoad = smooth('gpuLoad', num(data.gpuLoad));
+    targets.ramPct = smooth('ramPct', num(data.ramUsed));
+    gpuHasTemp = targets.gpuTemp !== null;
+    ramGbText = data.ramUsedGb ? data.ramUsedGb + ' used' : '--';
+
+    document.getElementById('liveDot').className = 'dot live';
+    document.getElementById('err').textContent = '';
+  } catch (err) {
+    document.getElementById('liveDot').className = 'dot err';
+    document.getElementById('err').textContent = 'sensor server unreachable — check LibreHardwareMonitor';
+  }
+}
+
+function renderLoop() {
+  for (const key in targets) {
+    const target = targets[key];
+    if (target === null) continue;
+    if (display[key] === undefined) display[key] = target;
+    // Ease displayed value ~12%/frame toward target — smooth glide, settles in ~0.4s
+    else display[key] += (target - display[key]) * 0.12;
+  }
+
+  const cpuTempEl = document.getElementById('cpuTemp');
+  if (display.cpuTemp !== undefined) {
+    cpuTempEl.textContent = Math.round(display.cpuTemp) + '°';
+    tempColor(cpuTempEl, display.cpuTemp);
+  }
+  if (display.cpuLoad !== undefined) {
+    document.getElementById('cpuLoad').textContent = Math.round(display.cpuLoad) + ' % load';
+    setMeter(document.getElementById('meterCpu'), display.cpuLoad);
+  }
+
+  const gpuMainEl = document.getElementById('gpuMain');
+  if (gpuHasTemp && display.gpuTemp !== undefined) {
+    gpuMainEl.textContent = Math.round(display.gpuTemp) + '°';
+    tempColor(gpuMainEl, display.gpuTemp);
+    document.getElementById('gpuSub').textContent = (display.gpuLoad === undefined ? '--' : Math.round(display.gpuLoad)) + ' % load';
+  } else if (display.gpuLoad !== undefined) {
+    gpuMainEl.textContent = Math.round(display.gpuLoad) + '%';
+    gpuMainEl.style.color = 'var(--text)';
+    document.getElementById('gpuSub').textContent = 'no temp sensor';
+  }
+  if (display.gpuLoad !== undefined) setMeter(document.getElementById('meterGpu'), display.gpuLoad);
+
+  if (display.ramPct !== undefined) {
+    document.getElementById('ramPct').textContent = Math.round(display.ramPct) + '%';
+    document.getElementById('ramGb').textContent = ramGbText;
+    setMeter(document.getElementById('meterRam'), display.ramPct);
+  }
+
+  requestAnimationFrame(renderLoop);
+}
+requestAnimationFrame(renderLoop);
+
+async function refreshNowPlaying() {
+  try {
+    const res = await fetch('/api/nowplaying', { cache: 'no-store' });
+    const data = await res.json();
+    document.getElementById('npTitle').textContent = data.title || 'Nothing playing';
+    document.getElementById('npArtist').textContent = data.artist || ' ';
+    const pos = data.position || 0;
+    const dur = data.duration || 0;
+    document.getElementById('seekPos').textContent = fmtTime(pos);
+    document.getElementById('seekDur').textContent = fmtTime(dur);
+    document.getElementById('seekFill').style.width = dur > 0 ? Math.min(100, (pos / dur) * 100) + '%' : '0%';
+  } catch (err) {}
+}
+
+function tickClock() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+}
+
+document.querySelectorAll('button[data-action]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    const action = btn.dataset.action;
+    if (action === 'playpause') {
+      isPlaying = !isPlaying;
+      document.getElementById('playIcon').innerHTML = isPlaying
+        ? '<path d="M8 5v14l11-7z"/>'
+        : '<path d="M7 5h4v14H7zm6 0h4v14h-4z"/>';
+    }
+    fetch('/api/media/' + action, { method: 'POST' }).catch(() => {});
+  });
+});
+
+tickClock();
+setInterval(tickClock, 15000);
+refresh();
+setInterval(refresh, 2000);
+refreshNowPlaying();
+setInterval(refreshNowPlaying, 3000);
+loadDeckPages();
+
+if (window.AndroidBridge && window.AndroidBridge.launchSpacedesk) {
+  const castBtn = document.getElementById('castBtn');
+  castBtn.style.display = 'flex';
+  castBtn.addEventListener('click', () => window.AndroidBridge.launchSpacedesk());
+}
+
+// Keep the screen on while this page is the foreground app (standalone PWA / kiosk use).
+let wakeLock = null;
+async function requestWakeLock() {
+  if (!('wakeLock' in navigator)) return;
+  try {
+    wakeLock = await navigator.wakeLock.request('screen');
+  } catch (err) {}
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') requestWakeLock();
+});
+requestWakeLock();
+
+// --- Widget edit mode: drag to reorder, drag to resize (like Android QS editor) ---
+function saveWidgetOrder() {
+  const order = Array.from(document.querySelectorAll('#page-dashboard > .widget')).map((w) => w.dataset.widget);
+  localStorage.setItem('dock-widget-order', JSON.stringify(order));
+}
+
+function saveWidgetSizes() {
+  const sizes = {};
+  document.querySelectorAll('#page-dashboard > .widget').forEach((w) => {
+    if (w.style.height) sizes[w.dataset.widget] = w.style.height;
+  });
+  localStorage.setItem('dock-widget-sizes', JSON.stringify(sizes));
+}
+
+function applySavedLayout() {
+  try {
+    const page = document.getElementById('page-dashboard');
+    const errEl = document.getElementById('err');
+    const order = JSON.parse(localStorage.getItem('dock-widget-order') || 'null');
+    if (order) {
+      order.forEach((id) => {
+        const el = page.querySelector('.widget[data-widget="' + id + '"]');
+        if (el) page.insertBefore(el, errEl);
+      });
+    }
+    const sizes = JSON.parse(localStorage.getItem('dock-widget-sizes') || 'null');
+    if (sizes) {
+      Object.keys(sizes).forEach((id) => {
+        const el = page.querySelector('.widget[data-widget="' + id + '"]');
+        if (el) { el.style.height = sizes[id]; el.style.minHeight = sizes[id]; }
+      });
+    }
+  } catch (err) {}
+}
+
+function startDrag(startEvt, widget) {
+  startEvt.preventDefault();
+  const parent = widget.parentElement;
+  const startX = startEvt.clientX;
+  const startY = startEvt.clientY;
+  widget.classList.add('dragging');
+  widget.setPointerCapture(startEvt.pointerId);
+
+  // Pointermove fires very frequently — rAF-throttle so we do at most one
+  // layout-affecting update per frame instead of per event (matters on older hardware).
+  let pending = null;
+  function onMove(ev) {
+    pending = ev;
+    if (pending !== ev) return;
+    requestAnimationFrame(() => {
+      const evt = pending;
+      pending = null;
+      const dx = evt.clientX - startX;
+      const dy = evt.clientY - startY;
+      widget.style.transform = 'translate(' + dx + 'px, ' + dy + 'px)';
+
+      const siblings = Array.from(parent.querySelectorAll(':scope > .widget')).filter((w) => w !== widget);
+      for (const sib of siblings) {
+        const r = sib.getBoundingClientRect();
+        if (evt.clientX >= r.left && evt.clientX <= r.right && evt.clientY >= r.top && evt.clientY <= r.bottom) {
+          const widgetIndex = Array.from(parent.children).indexOf(widget);
+          const sibIndex = Array.from(parent.children).indexOf(sib);
+          if (widgetIndex < sibIndex) parent.insertBefore(widget, sib.nextSibling);
+          else parent.insertBefore(widget, sib);
+          break;
+        }
+      }
+    });
+  }
+  function onUp() {
+    widget.classList.remove('dragging');
+    widget.style.transform = '';
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+    saveWidgetOrder();
+  }
+  document.addEventListener('pointermove', onMove);
+  document.addEventListener('pointerup', onUp);
+}
+
+function startResize(startEvt, widget) {
+  startEvt.preventDefault();
+  startEvt.stopPropagation();
+  const startY = startEvt.clientY;
+  const startHeight = widget.getBoundingClientRect().height;
+
+  let pending = null;
+  function onMove(ev) {
+    pending = ev;
+    if (pending !== ev) return;
+    requestAnimationFrame(() => {
+      const evt = pending;
+      pending = null;
+      const dy = evt.clientY - startY;
+      const newHeight = Math.max(140, Math.min(window.innerHeight * 0.7, startHeight + dy));
+      widget.style.height = newHeight + 'px';
+      widget.style.minHeight = newHeight + 'px';
+    });
+  }
+  function onUp() {
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+    saveWidgetSizes();
+  }
+  document.addEventListener('pointermove', onMove);
+  document.addEventListener('pointerup', onUp);
+}
+
+applySavedLayout();
+
+const editBtn = document.getElementById('editBtn');
+editBtn.addEventListener('click', () => {
+  document.body.classList.toggle('edit-mode');
+  editBtn.classList.toggle('active');
+});
+document.querySelectorAll('.widget-handle').forEach((handle) => {
+  handle.addEventListener('pointerdown', (e) => startDrag(e, handle.closest('.widget')));
+});
+document.querySelectorAll('.widget-resize').forEach((handle) => {
+  handle.addEventListener('pointerdown', (e) => startResize(e, handle.closest('.widget')));
+});
+</script>
+</body>
+</html>

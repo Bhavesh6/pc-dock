@@ -1,0 +1,27 @@
+{
+  "pages": [
+    {
+      "title": "Apps",
+      "buttons": [
+        { "id": "chrome", "label": "Chrome", "icon": "globe", "type": "launch", "target": "chrome" },
+        { "id": "explorer", "label": "Files", "icon": "folder", "type": "launch", "target": "explorer.exe" },
+        { "id": "notepad", "label": "Notepad", "icon": "file", "type": "launch", "target": "notepad.exe" },
+        { "id": "taskmgr", "label": "Task Mgr", "icon": "activity", "type": "launch", "target": "taskmgr.exe" }
+      ]
+    },
+    {
+      "title": "System",
+      "buttons": [
+        { "id": "lock", "label": "Lock PC", "icon": "lock", "type": "system", "action": "lock", "destructive": true },
+        { "id": "sleep", "label": "Sleep", "icon": "moon", "type": "system", "action": "sleep", "destructive": true }
+      ]
+    },
+    {
+      "title": "Hotkeys",
+      "buttons": [
+        { "id": "alt-tab", "label": "Alt+Tab", "icon": "keyboard", "type": "hotkey", "keys": "alt+tab" },
+        { "id": "win-d", "label": "Show Desktop", "icon": "keyboard", "type": "hotkey", "keys": "win+d" }
+      ]
+    }
+  ]
+}

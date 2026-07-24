@@ -1,0 +1,10 @@
+{
+  "name": "pc-dock",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local dashboard: PC temps/load + media control, served for a phone dock",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
