@@ -449,11 +449,13 @@
     /* grid-template-rows is explicit (not auto) because this WebView's grid implementation
        under-measures a stacked-flex child's (.media) true height during auto row-sizing,
        letting it overflow into the next row — same class of engine quirk as the earlier
-       flex-basis bug. An explicit minmax lower bound sidesteps the miscalculation. */
+       flex-basis bug. An explicit minmax lower bound sidesteps the miscalculation.
+       Order: header, shortcuts (always visible first, no scroll needed to reach it as
+       a drop target), meters+media, err. */
     #page-dashboard {
       display: grid;
       grid-template-columns: 3fr 2fr;
-      grid-template-rows: auto minmax(340px, auto) auto auto;
+      grid-template-rows: auto minmax(110px, auto) minmax(340px, auto) auto;
       height: 100%;
       align-content: start;
       row-gap: 16px;
@@ -496,6 +498,15 @@
           <div id="clock">--:--</div>
         </div>
       </header>
+
+      <div class="shortcuts widget" data-widget="shortcuts">
+        <div class="widget-handle" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>
+        </div>
+        <div class="shortcuts-title">Shortcuts</div>
+        <div class="shortcuts-grid" id="shortcutsGrid"></div>
+        <div class="widget-resize" aria-hidden="true"></div>
+      </div>
 
       <div class="meters widget" data-widget="meters">
         <div class="widget-handle" aria-hidden="true">
@@ -564,15 +575,6 @@
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4.702a.705.705 0 0 0-1.203-.498L6.413 7.587A1.4 1.4 0 0 1 5.416 8H3a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h2.416a1.4 1.4 0 0 1 .997.413l3.383 3.384A.705.705 0 0 0 11 19.298z"/><path d="M16 9a5 5 0 0 1 0 6"/><path d="M19.364 18.364a9 9 0 0 0 0-12.728"/></svg>
           </button>
         </div>
-        <div class="widget-resize" aria-hidden="true"></div>
-      </div>
-
-      <div class="shortcuts widget" data-widget="shortcuts">
-        <div class="widget-handle" aria-hidden="true">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg>
-        </div>
-        <div class="shortcuts-title">Shortcuts</div>
-        <div class="shortcuts-grid" id="shortcutsGrid"></div>
         <div class="widget-resize" aria-hidden="true"></div>
       </div>
 
@@ -729,7 +731,15 @@ function startDeckDrag(startEvt, btn, actionData) {
   const originalSnapType = pager.style.scrollSnapType;
   pager.style.scrollSnapType = 'none';
 
+  // pointerup's own clientX/Y can be unreliable on touch (unlike pointermove) —
+  // track the last real position ourselves and use that for the drop decision,
+  // rather than trusting whatever pointerup reports.
+  let lastX = startEvt.clientX;
+  let lastY = startEvt.clientY;
+
   function onMove(ev) {
+    lastX = ev.clientX;
+    lastY = ev.clientY;
     ghost.style.left = (ev.clientX - rect.width / 2) + 'px';
     ghost.style.top = (ev.clientY - rect.height / 2) + 'px';
 
@@ -748,7 +758,7 @@ function startDeckDrag(startEvt, btn, actionData) {
     ghost.remove();
     btn.style.opacity = '';
     shortcutsWidget.classList.remove('drop-target');
-    if (elementIsOver(shortcutsWidget, ev.clientX, ev.clientY)) {
+    if (elementIsOver(shortcutsWidget, lastX, lastY)) {
       addShortcut(actionData);
     }
     pager.style.scrollSnapType = originalSnapType;
